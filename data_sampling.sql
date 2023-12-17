@@ -16,8 +16,7 @@ LEFT JOIN collection c ON c.collection_id = ctl.collection_id
 --1. Название и продолжительность самого длительного трека.
 SELECT name, duration
 FROM track t
-WHERE duration = (SELECT max (duration)
-FROM track);
+WHERE duration = (SELECT max (duration) FROM track);
 
 --2. Название треков, продолжительность которых не менее 3,5 минут.
 SELECT name, duration
@@ -43,20 +42,22 @@ FROM musician m
 WHERE name_pseudonym NOT LIKE '% %'
 
 --5. Название треков, которые содержат слово «мой» или «my».
-SELECT name
-FROM track t
-WHERE lower(name) LIKE lower('%мой%')
-OR lower(name) LIKE lower('%my%')
+SELECT name FROM track t 
+WHERE name ~* '(\mmy\M)' OR 
+name ILIKE '% Мой' OR -- не нашла вариантов, когда ILIKE регистронезависимый с кириллицей
+name ILIKE '% Мой %' OR 
+name ILIKE 'Мой %' OR 
+name ILIKE '% мой' OR
+name ILIKE '% мой %' OR 
+name ILIKE 'мой %'
+
 
 --Задание 3.
 --1. Количество исполнителей в каждом жанре.
-SELECT mg."name" AS genre_name, ml.cnt
-FROM (
-SELECT mgl.genre_id, COUNT(mgl.musician_id) AS cnt
-FROM musician_genre_link mgl
-GROUP BY mgl.genre_id
-) AS ml
-JOIN musical_genre mg ON mg.genre_id = ml.genre_id
+SELECT mg.name, COUNT(musician_id) AS count_of_musician /* Имена жанров и количество айди исполнителей из промежуточной таблицы */
+FROM musical_genre mg  /* Из таблицы жанров */
+LEFT JOIN musician_genre_link mgl ON mgl.genre_id = mg.genre_id /* Объединяем с промежуточной таблицей между жанрами и исполнителями */
+GROUP BY mg.genre_id /* Группируем по айди жанров */
 
 --2. Количество треков, вошедших в альбомы 2019–2020 годов.
 SELECT COUNT(DISTINCT(track_id))
@@ -72,10 +73,16 @@ JOIN track t ON t.album_id = a.album_id
 GROUP BY a.name
 
 --4. Все исполнители, которые не выпустили альбомы в 2020 году.
-SELECT DISTINCT m.name_pseudonym  FROM album a
-JOIN musician_album_link mal ON mal.album_id = a.album_id 
-JOIN musician m ON m.musician_id = mal.musician_id 
-WHERE "year" != 2020
+SELECT name_pseudonym /* Получаем имена исполнителей */
+FROM musician m  /* Из таблицы исполнителей */
+WHERE m.name_pseudonym NOT IN ( /* Где имя исполнителя не входит в вложенную выборку */
+SELECT name_pseudonym /* Получаем имена исполнителей */
+FROM musician m  /* Из таблицы исполнителей */
+JOIN musician_album_link mal  ON mal.musician_id = m.musician_id /* Объединяем с промежуточной таблицей */
+JOIN album a  ON a.album_id = mal.album_id /* Объединяем с таблицей альбомов */
+WHERE year = 2020 /* Где год альбома равен 2020 */
+);
+
 
 --5. Названия сборников, в которых присутствует конкретный исполнитель (выберите его сами).
 SELECT m.name_pseudonym, c."name"  FROM musician m 
@@ -85,6 +92,7 @@ JOIN track t ON t.album_id = a.album_id
 JOIN collection_track_link ctl ON ctl.track_id = t.track_id 
 JOIN collection c ON c.collection_id = ctl.collection_id 
 WHERE name_pseudonym = 'Metallica'
+
 
 --Задание 4
 --1. Названия альбомов, в которых присутствуют исполнители более чем одного жанра.

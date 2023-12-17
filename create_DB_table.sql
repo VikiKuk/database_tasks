@@ -29,7 +29,7 @@ CREATE TABLE musician_album_link (
 CREATE TABLE track (
 	track_id SERIAL PRIMARY KEY,
 	name VARCHAR(60) NOT NULL,
-	duration TIMESTAMP NOT NULL,
+	duration INTEGER NOT NULL,
 	album_id INTEGER REFERENCES album(album_id)
 );
 
